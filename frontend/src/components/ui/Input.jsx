@@ -1,13 +1,25 @@
-const Input = ({ className, ...props }) => {
+import React from 'react';
+import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+const Input = React.forwardRef(({ className, type, ...props }, ref) => {
     return (
-        <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg blur opacity-20 group-hover:opacity-60 transition duration-500"></div>
-            <input
-                className={`relative w-full bg-[#0a0515]/80 border border-white/10 text-white px-4 py-3 rounded-lg font-sans focus:outline-none focus:border-cyan-500/50 placeholder-gray-600 transition-all ${className}`}
-                {...props}
-            />
-        </div>
+        <input
+            type={type}
+            className={twMerge(
+                clsx(
+                    "flex h-10 w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white placeholder:text-white/40",
+                    "focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                    "transition-all duration-300",
+                    className
+                )
+            )}
+            ref={ref}
+            {...props}
+        />
     );
-};
+});
+Input.displayName = "Input";
 
 export default Input;

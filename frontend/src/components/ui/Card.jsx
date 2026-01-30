@@ -1,12 +1,28 @@
-const Card = ({ children, className }) => {
+'use client';
+
+import React from 'react';
+import { motion } from 'framer-motion';
+import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function Card({ className, children, ...props }) {
     return (
-        <div className={`glass-panel p-6 rounded-2xl relative overflow-hidden group ${className}`}>
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative">
-                {children}
-            </div>
-        </div>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className={twMerge(
+                clsx(
+                    "bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-6 shadow-2xl shadow-purple-500/10",
+                    "hover:border-purple-500/50 transition-colors duration-300",
+                    className
+                )
+            )}
+            {...props}
+        >
+            {children}
+        </motion.div>
     );
-};
+}
 
 export default Card;
