@@ -1,0 +1,10 @@
+# IDE and System Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# Project specific
+node_modules/
+.env
