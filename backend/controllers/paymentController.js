@@ -2,8 +2,12 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Transaction = require('../models/Transaction');
 const redis = require('../config/redis');
+const Stripe = require('stripe');
 
 let razorpay;
+let stripe;
+
+// Initialize Razorpay
 try {
     if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
         razorpay = new Razorpay({
@@ -11,10 +15,21 @@ try {
             key_secret: process.env.RAZORPAY_KEY_SECRET
         });
     } else {
-        console.warn("Razorpay keys missing. Payment features will be disabled.");
+        console.warn("Razorpay keys missing. Razorpay features will be disabled.");
     }
 } catch (err) {
     console.error("Razorpay init failed:", err.message);
+}
+
+// Initialize Stripe
+try {
+    if (process.env.STRIPE_SECRET_KEY) {
+        stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    } else {
+        console.warn("Stripe secret key missing. Stripe features will be disabled.");
+    }
+} catch (err) {
+    console.error("Stripe init failed:", err.message);
 }
 
 // @desc    Create Razorpay Order
@@ -35,16 +50,13 @@ const createOrder = async (req, res) => {
 
     try {
         const order = await razorpay.orders.create(options);
-
-        // Temporarily log intention (optional)
-
         res.json(order);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// @desc    Verify Payment and Settle
+// @desc    Verify Razorpay Payment and Settle
 // @route   POST /api/payment/verify
 // @access  Private
 const verifyPayment = async (req, res) => {
@@ -58,7 +70,6 @@ const verifyPayment = async (req, res) => {
         .digest('hex');
 
     if (expectedSignature === razorpay_signature) {
-        // Payment successful
         try {
             const transaction = await Transaction.create({
                 payer: req.user._id,
@@ -70,7 +81,6 @@ const verifyPayment = async (req, res) => {
                 status: 'success'
             });
 
-            // Invalidate cache
             const cacheKey = `group_balance:${groupId}`;
             await redis.del(cacheKey);
 
@@ -83,7 +93,83 @@ const verifyPayment = async (req, res) => {
     }
 };
 
+// @desc    Create Stripe Payment Intent
+// @route   POST /api/payment/create-payment-intent
+// @access  Private
+const createStripePaymentIntent = async (req, res) => {
+    const { amount, currency = 'inr' } = req.body;
+
+    if (!stripe) {
+        return res.status(503).json({ message: 'Stripe not configured' });
+    }
+
+    try {
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: Math.round(amount * 100), // amount in smallest currency unit (e.g., paise)
+            currency: currency,
+            automatic_payment_methods: {
+                enabled: true,
+            },
+            metadata: {
+                userId: req.user._id.toString()
+            }
+        });
+
+        res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error) {
+        console.error('Stripe Intent Error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Verify Stripe Payment and Settle
+// @route   POST /api/payment/verify-stripe
+// @access  Private
+const verifyStripePayment = async (req, res) => {
+    const { paymentIntentId, payeeId, groupId, amount } = req.body;
+
+    if (!stripe) {
+        return res.status(503).json({ message: 'Stripe not configured' });
+    }
+
+    try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+        if (paymentIntent.status === 'succeeded') {
+            // Dedup check using paymentIntentId as identifier
+            const existingTx = await Transaction.findOne({ razorpay_payment_id: paymentIntentId });
+
+            if (existingTx) {
+                return res.json({ status: 'success', transaction: existingTx, message: 'Transaction already recorded' });
+            }
+
+            const transaction = await Transaction.create({
+                payer: req.user._id,
+                payee: payeeId,
+                amount: amount,
+                group: groupId,
+                razorpay_order_id: paymentIntentId, // Reuse field
+                razorpay_payment_id: paymentIntentId, // Reuse field
+                status: 'success'
+            });
+
+            // Invalidate cache
+            const cacheKey = `group_balance:${groupId}`;
+            await redis.del(cacheKey);
+
+            res.json({ status: 'success', transaction });
+        } else {
+            res.status(400).json({ message: `Payment not succeeded. Status: ${paymentIntent.status}` });
+        }
+    } catch (error) {
+        console.error('Stripe Verification Error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createOrder,
-    verifyPayment
+    verifyPayment,
+    createStripePaymentIntent,
+    verifyStripePayment
 };

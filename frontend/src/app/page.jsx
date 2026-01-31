@@ -1,12 +1,17 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Orbitron } from 'next/font/google';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import DemoModal from '@/components/DemoModal';
 
 const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron' });
 
 export default function LandingPage() {
+    const [showDemo, setShowDemo] = useState(false);
+
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
             {/* Background Elements */}
@@ -32,11 +37,14 @@ export default function LandingPage() {
                             Get Started
                         </Button>
                     </Link>
-                    <Link href="/dashboard">
-                        <Button variant="outline" size="lg" className="text-lg px-8 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
-                            View Demo
-                        </Button>
-                    </Link>
+                    <Button
+                        onClick={() => setShowDemo(true)}
+                        variant="outline"
+                        size="lg"
+                        className="text-lg px-8 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
+                    >
+                        Quick Tour
+                    </Button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 text-left">
@@ -54,6 +62,8 @@ export default function LandingPage() {
                     </Card>
                 </div>
             </div>
+
+            <DemoModal isOpen={showDemo} onClose={() => setShowDemo(false)} />
         </div>
     );
 }

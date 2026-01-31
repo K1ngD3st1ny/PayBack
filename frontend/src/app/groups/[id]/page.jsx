@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import { BentoGrid } from '@/components/ui/BentoGrid'; // BentoGridItem not directly used in children, but good to have
-import Script from 'next/script';
+import PaymentModal from '@/components/PaymentModal';
 import { motion } from 'framer-motion';
 import { ArrowLeft, UserPlus, Receipt, RefreshCw, AlertCircle, Wallet, Trash2, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -40,6 +40,8 @@ export default function GroupDetails() {
     const [splitType, setSplitType] = useState('EQUAL'); // 'EQUAL' | 'UNEQUAL'
     const [manualSplits, setManualSplits] = useState({}); // { userId: amount }
     const [splitError, setSplitError] = useState('');
+
+    const [paymentModal, setPaymentModal] = useState({ isOpen: false, amount: 0, payeeId: null });
 
     useEffect(() => {
         const u = localStorage.getItem('user');
@@ -186,53 +188,13 @@ export default function GroupDetails() {
         });
     };
 
-    const handleSettle = async (transaction) => {
+    const handleSettle = (transaction) => {
         if (!currentUser) return;
-        try {
-            const orderRes = await api.post('/payment/create-order', {
-                amount: transaction.amount,
-                payeeId: transaction.to,
-                groupId: id
-            });
-            const options = {
-                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag',
-                amount: orderRes.data.amount,
-                currency: "INR",
-                name: "PayBack",
-                description: "Debt Settlement",
-                order_id: orderRes.data.id,
-                handler: async function (response) {
-                    try {
-                        const verifyRes = await api.post('/payment/verify', {
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_signature: response.razorpay_signature,
-                            payeeId: transaction.to,
-                            groupId: id,
-                            amount: transaction.amount
-                        });
-                        if (verifyRes.data.status === 'success') {
-                            alert('Payment Successful');
-                            fetchGroupData();
-                        }
-                    } catch (err) {
-                        alert('Verification Failed');
-                    }
-                },
-                prefill: {
-                    name: currentUser.name,
-                    email: currentUser.email
-                },
-                theme: {
-                    color: "#A855F7" // Purple theme for Razorpay
-                }
-            };
-            const rzp1 = new window.Razorpay(options);
-            rzp1.open();
-        } catch (error) {
-            console.error('Payment initialization failed', error);
-            alert('Payment Logic Active (Keys might be missing or test mode)');
-        }
+        setPaymentModal({
+            isOpen: true,
+            amount: transaction.amount,
+            payeeId: transaction.to
+        });
     };
 
     if (loading) return <div className="p-8 text-center animate-pulse text-cyan-500 font-orbitron">ESTABLISHING UPLINK...</div>;
@@ -242,10 +204,6 @@ export default function GroupDetails() {
 
     return (
         <div className="min-h-screen p-4 md:p-8 relative">
-            <Script
-                src="https://checkout.razorpay.com/v1/checkout.js"
-                strategy="lazyOnload"
-            />
 
             <div className="max-w-7xl mx-auto mb-8 flex justify-between items-end">
                 <div>
@@ -270,8 +228,8 @@ export default function GroupDetails() {
 
             <BentoGrid>
                 {/* 1. Add Expense Module (Large) */}
-                <div className="md:col-span-2 md:row-span-2 glass-panel p-6 rounded-xl flex flex-col border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.1)]">
-                    <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                <div className="md:col-span-2 md:row-span-2 glass-panel p-6 rounded-xl flex flex-col border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.1)] overflow-hidden">
+                    <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4 shrink-0">
                         <h2 className="text-lg font-bold flex items-center gap-2 text-white font-orbitron">
                             <Receipt size={20} className="text-pink-500" /> NEW TRANSACTION
                         </h2>
@@ -291,120 +249,122 @@ export default function GroupDetails() {
                         </div>
                     </div>
 
-                    <form onSubmit={handleAddExpense} className="space-y-6 flex-1">
-                        <div className="flex flex-col md:flex-row gap-4">
-                            <div className="flex-1">
-                                <label className="text-xs text-cyan-400 mb-2 block font-mono tracking-wider">PAYMENT FOR...</label>
-                                <Input
-                                    placeholder="e.g. Server Upkeep"
-                                    value={description}
-                                    onChange={e => setDescription(e.target.value)}
-                                />
+                    <form onSubmit={handleAddExpense} className="flex flex-col flex-1 min-h-0 relative">
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6 pb-4">
+                            <div className="flex flex-col md:flex-row gap-4">
+                                <div className="flex-1">
+                                    <label className="text-xs text-cyan-400 mb-2 block font-mono tracking-wider">PAYMENT FOR...</label>
+                                    <Input
+                                        placeholder="e.g. Server Upkeep"
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                    />
+                                </div>
+                                <div className="w-full md:w-1/3">
+                                    <label className="text-xs text-pink-400 mb-2 block font-mono tracking-wider">TOTAL AMOUNT</label>
+                                    <Input
+                                        type="number"
+                                        placeholder="0.00"
+                                        value={amount}
+                                        onChange={e => setAmount(e.target.value)}
+                                    />
+                                </div>
                             </div>
-                            <div className="w-full md:w-1/3">
-                                <label className="text-xs text-pink-400 mb-2 block font-mono tracking-wider">TOTAL AMOUNT</label>
-                                <Input
-                                    type="number"
-                                    placeholder="0.00"
-                                    value={amount}
-                                    onChange={e => setAmount(e.target.value)}
-                                />
-                            </div>
-                        </div>
 
-                        <div className="flex flex-col md:flex-row gap-4">
-                            <div className="flex-1">
-                                <label className="text-xs text-purple-400 mb-2 block font-mono tracking-wider">PAID BY</label>
-                                <select
-                                    className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm focus:border-purple-500 outline-none"
-                                    value={paidBy}
-                                    onChange={e => setPaidBy(e.target.value)}
-                                >
-                                    {group.members.map(m => (
-                                        <option key={m._id} value={m._id}>{m.name} {m._id === currentUser?._id ? '(YOU)' : ''}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Tag Selection */}
-                        <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2">
-                            <label className="text-xs text-purple-400 mb-2 block font-mono tracking-wider flex items-center gap-2">
-                                <Tag size={12} /> CATEGORY
-                            </label>
-                            <div className="flex flex-wrap gap-2">
-                                {TAGS.map(t => (
-                                    <button
-                                        key={t}
-                                        type="button"
-                                        onClick={() => setTag(t)}
-                                        className={cn(
-                                            "px-3 py-1 rounded-full text-xs font-bold border transition-all",
-                                            tag === t
-                                                ? "bg-purple-500/20 border-purple-500 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
-                                                : "bg-black/40 border-white/10 text-gray-500 hover:text-gray-300"
-                                        )}
+                            <div className="flex flex-col md:flex-row gap-4">
+                                <div className="flex-1">
+                                    <label className="text-xs text-purple-400 mb-2 block font-mono tracking-wider">PAID BY</label>
+                                    <select
+                                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm focus:border-purple-500 outline-none"
+                                        value={paidBy}
+                                        onChange={e => setPaidBy(e.target.value)}
                                     >
-                                        {t}
-                                    </button>
-                                ))}
+                                        {group.members.map(m => (
+                                            <option key={m._id} value={m._id}>{m.name} {m._id === currentUser?._id ? '(YOU)' : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Split Selection for EQUAL */}
-                        {splitType === 'EQUAL' && (
+                            {/* Tag Selection */}
                             <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2">
-                                <label className="text-xs text-gray-400 mb-2 block font-mono">SPLIT WITH</label>
+                                <label className="text-xs text-purple-400 mb-2 block font-mono tracking-wider flex items-center gap-2">
+                                    <Tag size={12} /> CATEGORY
+                                </label>
                                 <div className="flex flex-wrap gap-2">
-                                    {group.members.map(member => (
+                                    {TAGS.map(t => (
                                         <button
-                                            key={member._id}
+                                            key={t}
                                             type="button"
-                                            onClick={() => toggleSplitWith(member._id)}
+                                            onClick={() => setTag(t)}
                                             className={cn(
                                                 "px-3 py-1 rounded-full text-xs font-bold border transition-all",
-                                                splitWith.includes(member._id)
-                                                    ? "bg-cyan-500/20 border-cyan-500 text-cyan-400"
-                                                    : "bg-black/40 border-white/10 text-gray-500"
+                                                tag === t
+                                                    ? "bg-purple-500/20 border-purple-500 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+                                                    : "bg-black/40 border-white/10 text-gray-500 hover:text-gray-300"
                                             )}
                                         >
-                                            {member.name}
+                                            {t}
                                         </button>
                                     ))}
                                 </div>
                             </div>
-                        )}
 
-                        {splitType === 'UNEQUAL' && (
-                            <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                <div className="flex justify-between text-xs text-gray-400 mb-2 font-mono">
-                                    <span>MEMBER SPLITS</span>
-                                    <span className={remainingSplit !== 0 ? "text-red-500 font-bold" : "text-green-500 font-bold"}>
-                                        REMAINING: {remainingSplit.toFixed(2)}
-                                    </span>
-                                </div>
-                                {group.members.map(member => (
-                                    <div key={member._id} className="flex justify-between items-center text-sm py-1">
-                                        <span className="text-gray-300">{member.name} {member._id === currentUser?._id && <span className="text-cyan-500 text-xs">(YOU)</span>}</span>
-                                        <input
-                                            type="number"
-                                            className="w-24 bg-black/50 border border-white/10 rounded px-2 py-1 text-right focus:border-cyan-500 transition-colors text-white outline-none"
-                                            placeholder="0"
-                                            value={manualSplits[member._id] || ''}
-                                            onChange={(e) => handleManualSplitChange(member._id, e.target.value)}
-                                        />
+                            {/* Split Selection for EQUAL */}
+                            {splitType === 'EQUAL' && (
+                                <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2">
+                                    <label className="text-xs text-gray-400 mb-2 block font-mono">SPLIT WITH</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {group.members.map(member => (
+                                            <button
+                                                key={member._id}
+                                                type="button"
+                                                onClick={() => toggleSplitWith(member._id)}
+                                                className={cn(
+                                                    "px-3 py-1 rounded-full text-xs font-bold border transition-all",
+                                                    splitWith.includes(member._id)
+                                                        ? "bg-cyan-500/20 border-cyan-500 text-cyan-400"
+                                                        : "bg-black/40 border-white/10 text-gray-500"
+                                                )}
+                                            >
+                                                {member.name}
+                                            </button>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                </div>
+                            )}
 
-                        {splitError && (
-                            <div className="text-red-500 text-xs flex items-center gap-1 font-mono bg-red-900/10 p-2 rounded border border-red-500/20">
-                                <AlertCircle size={12} /> {splitError}
-                            </div>
-                        )}
+                            {splitType === 'UNEQUAL' && (
+                                <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2">
+                                    <div className="flex justify-between text-xs text-gray-400 mb-2 font-mono">
+                                        <span>MEMBER SPLITS</span>
+                                        <span className={remainingSplit !== 0 ? "text-red-500 font-bold" : "text-green-500 font-bold"}>
+                                            REMAINING: {remainingSplit.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    {group.members.map(member => (
+                                        <div key={member._id} className="flex justify-between items-center text-sm py-1">
+                                            <span className="text-gray-300">{member.name} {member._id === currentUser?._id && <span className="text-cyan-500 text-xs">(YOU)</span>}</span>
+                                            <input
+                                                type="number"
+                                                className="w-24 bg-black/50 border border-white/10 rounded px-2 py-1 text-right focus:border-cyan-500 transition-colors text-white outline-none"
+                                                placeholder="0"
+                                                value={manualSplits[member._id] || ''}
+                                                onChange={(e) => handleManualSplitChange(member._id, e.target.value)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
-                        <div className="pt-4 mt-auto">
+                            {splitError && (
+                                <div className="text-red-500 text-xs flex items-center gap-1 font-mono bg-red-900/10 p-2 rounded border border-red-500/20">
+                                    <AlertCircle size={12} /> {splitError}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="pt-4 mt-auto border-t border-white/5 bg-black/50 backdrop-blur-sm z-10">
                             <Button type="submit" className="w-full" disabled={splitType === 'UNEQUAL' && Math.abs(remainingSplit) > 0.1}>
                                 INITIATE TRANSFER
                             </Button>
@@ -523,6 +483,18 @@ export default function GroupDetails() {
                 message="Are you sure you want to delete this protocol? All associated expenses will be permanently removed."
                 confirmText="Delete Protocol"
                 cancelText="Cancel"
+            />
+
+            <PaymentModal
+                isOpen={paymentModal.isOpen}
+                onClose={() => setPaymentModal({ ...paymentModal, isOpen: false })}
+                amount={paymentModal.amount}
+                payeeId={paymentModal.payeeId}
+                groupId={id}
+                onSuccess={() => {
+                    fetchGroupData();
+                    alert("Payment Successfully Verified!");
+                }}
             />
         </div>
     );
