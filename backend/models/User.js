@@ -17,6 +17,10 @@ const userSchema = new mongoose.Schema({
     upiId: {
         type: String
     },
+    avatar: {
+        type: String, // Base64 string
+        default: ""
+    },
     friends: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

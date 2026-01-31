@@ -23,7 +23,9 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/groups', require('./routes/groupRoutes'));
 app.use('/api/expenses', require('./routes/expenseRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/payment', require('./routes/paymentRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));
 
 const PORT = process.env.PORT || 5000;
 

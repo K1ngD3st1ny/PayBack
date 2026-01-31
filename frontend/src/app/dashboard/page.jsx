@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import api from '@/lib/api';
-import { Plus, LogOut, Users, Zap } from 'lucide-react';
+import { Plus, Users, Zap } from 'lucide-react';
 
 export default function Dashboard() {
     const router = useRouter();
@@ -58,9 +58,7 @@ export default function Dashboard() {
                     </h1>
                     <p className="text-purple-300 tracking-widest mt-2 uppercase text-sm">Welcome Back, {user?.name}</p>
                 </div>
-                <Button variant="danger" onClick={() => { localStorage.removeItem('token'); router.push('/login'); }}>
-                    <LogOut size={16} /> EXIT
-                </Button>
+
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
