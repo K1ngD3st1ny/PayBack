@@ -119,13 +119,42 @@ const getGroupBalances = async (req, res) => {
     }
 };
 
-// @desc    Get user's groups
+// @desc    Get user's groups with personal net balance
 // @route   GET /api/groups
 // @access  Private
 const getUserGroups = async (req, res) => {
     try {
         const groups = await Group.find({ members: req.user._id });
-        res.json(groups);
+        const userId = req.user._id.toString();
+
+        const groupsWithBalance = await Promise.all(groups.map(async (group) => {
+            const expenses = await Expense.find({ group: group._id });
+
+            let myPaid = 0;
+            let myShare = 0;
+
+            expenses.forEach(exp => {
+                // Amount I paid
+                if (exp.paid_by.toString() === userId) {
+                    myPaid += exp.amount;
+                }
+
+                // My share in this expense
+                const mySplit = exp.split_details.find(split => split.user.toString() === userId);
+                if (mySplit) {
+                    myShare += mySplit.amount_owed;
+                }
+            });
+
+            const myBalance = myPaid - myShare;
+
+            return {
+                ...group.toObject(),
+                myBalance // Positive = Lent (Green), Negative = Owe (Yellow)
+            };
+        }));
+
+        res.json(groupsWithBalance);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -42,10 +42,28 @@ export default function Dashboard() {
         e.preventDefault();
         try {
             const res = await api.post('/groups', { name: newGroupName });
-            setGroups([...groups, res.data]);
+            // The newly created group typically has 0 balance, so it needs to match the structure
+            const newGroup = { ...res.data, myBalance: 0 };
+            setGroups([...groups, newGroup]);
             setNewGroupName('');
         } catch (error) {
             console.error('Failed to create group', error);
+        }
+    };
+
+    const getStatusDot = (balance) => {
+        if (!balance || Math.abs(balance) < 1) return null; // Settled / insignificant
+
+        if (balance > 0) {
+            // Lent money -> Green
+            return (
+                <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]" title="You are owed money"></div>
+            );
+        } else {
+            // Owe money -> Yellow
+            return (
+                <div className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_10px_#facc15]" title="You owe money"></div>
+            );
         }
     };
 
@@ -109,7 +127,8 @@ export default function Dashboard() {
                                                 <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors">
                                                     {group.name}
                                                 </h3>
-                                                <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></div>
+                                                {/* Status Indicator */}
+                                                {getStatusDot(group.myBalance)}
                                             </div>
                                             <div className="text-xs font-mono text-gray-500 break-all">
                                                 ID: {group._id}

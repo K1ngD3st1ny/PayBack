@@ -45,7 +45,7 @@ export default function ProfileMenu({ user: initialUser }) {
                     </div>
                     <div className="hidden md:block text-left">
                         <p className="text-sm font-medium text-white leading-none">{user.name}</p>
-                        <p className="text-[10px] text-gray-400 leading-none mt-1">Online</p>
+
                     </div>
                     <ChevronDown size={14} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
