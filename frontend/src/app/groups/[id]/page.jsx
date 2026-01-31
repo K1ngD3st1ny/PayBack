@@ -11,6 +11,7 @@ import Script from 'next/script';
 import { motion } from 'framer-motion';
 import { ArrowLeft, UserPlus, Receipt, RefreshCw, AlertCircle, Wallet, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 export default function GroupDetails() {
     const { id } = useParams();
@@ -27,6 +28,9 @@ export default function GroupDetails() {
     const [amount, setAmount] = useState('');
     const [paidBy, setPaidBy] = useState(''); // ID of user who paid
     const [splitWith, setSplitWith] = useState([]); // Array of user IDs
+
+    // Modal State
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, expenseId: null });
 
     // Split Logic
     const [splitType, setSplitType] = useState('EQUAL'); // 'EQUAL' | 'UNEQUAL'
@@ -143,11 +147,17 @@ export default function GroupDetails() {
         }
     };
 
-    const handleDeleteExpense = async (expenseId) => {
-        if (!confirm('Are you sure you want to delete this transaction?')) return;
+    const handleDeleteClick = (expenseId) => {
+        setDeleteModal({ isOpen: true, expenseId });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteModal.expenseId) return;
+
         try {
-            await api.delete(`/expenses/${expenseId}`);
+            await api.delete(`/expenses/${deleteModal.expenseId}`);
             fetchGroupData();
+            setDeleteModal({ isOpen: false, expenseId: null });
         } catch (error) {
             alert('Failed to delete expense');
         }
@@ -413,7 +423,7 @@ export default function GroupDetails() {
                                 <div className="flex items-center gap-3">
                                     <div className="font-orbitron font-bold text-cyan-400">₹{exp.amount}</div>
                                     <button
-                                        onClick={() => handleDeleteExpense(exp._id)}
+                                        onClick={() => handleDeleteClick(exp._id)}
                                         className="text-gray-600 hover:text-red-500 transition-colors p-1"
                                         title="Delete Transaction"
                                     >
@@ -442,6 +452,15 @@ export default function GroupDetails() {
                     </div>
                 </form>
             </div>
+            <ConfirmationModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, expenseId: null })}
+                onConfirm={confirmDelete}
+                title="Delete Transaction?"
+                message="Are you sure you want to delete this transaction? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
         </div>
     );
 }
