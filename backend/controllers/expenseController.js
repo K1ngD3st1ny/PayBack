@@ -7,7 +7,7 @@ const redis = require('../config/redis');
 // @route   POST /api/expenses/add
 // @access  Private
 const addExpense = async (req, res) => {
-    const { description, amount, groupId, splitDetails, paidBy } = req.body;
+    const { description, amount, groupId, splitDetails, paidBy, tag } = req.body;
 
     if (!description || !amount || !groupId) {
         return res.status(400).json({ message: 'Please provide all required fields' });
@@ -31,6 +31,7 @@ const addExpense = async (req, res) => {
         const expense = await Expense.create({
             description,
             amount,
+            tag: tag || 'Other',
             group: groupId,
             paid_by: payerId,
             split_details: splitDetails || [] // Expects [{ user: id, amount_owed: num }]
@@ -94,8 +95,27 @@ const deleteExpense = async (req, res) => {
     }
 };
 
+// @desc    Get all expenses involving the user (paid by or involved in split)
+// @route   GET /api/expenses/user
+// @access  Private
+const getUserExpenses = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const expenses = await Expense.find({
+            $or: [
+                { paid_by: userId },
+                { 'split_details.user': userId }
+            ]
+        }).sort({ date: -1 });
+        res.json(expenses);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     addExpense,
     getGroupExpenses,
-    deleteExpense
+    deleteExpense,
+    getUserExpenses
 };

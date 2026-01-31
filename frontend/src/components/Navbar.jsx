@@ -2,12 +2,20 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CreditCard } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { CreditCard, PieChart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ProfileMenu from './ProfileMenu';
+import StatisticsModal from './StatisticsModal';
 
 export default function Navbar() {
     const [user, setUser] = useState(null);
+    const [showStats, setShowStats] = useState(false);
+    const pathname = usePathname();
+
+    // Check if we are in a group details page
+    const isGroupPage = pathname?.startsWith('/groups/');
+    const groupId = isGroupPage ? pathname.split('/')[2] : null;
 
     useEffect(() => {
         // Initial fetch of user from local storage to pass to ProfileMenu
@@ -32,11 +40,25 @@ export default function Navbar() {
                         PAY<span className="text-pink-500">BACK</span>
                     </span>
                 </Link>
+
+                {/* Statistics Button - Only visible in Group Context */}
+                {user && isGroupPage && groupId && (
+                    <button
+                        onClick={() => setShowStats(true)}
+                        className="p-2 rounded-lg hover:bg-white/5 transition-colors text-gray-400 hover:text-cyan-400 flex items-center gap-2 group"
+                        title="Protocol Analytics"
+                    >
+                        <PieChart size={20} className="group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-mono hidden md:block">STATS</span>
+                    </button>
+                )}
             </div>
 
             <div className="flex items-center gap-4">
                 {user && <ProfileMenu user={user} />}
             </div>
+
+            <StatisticsModal isOpen={showStats} onClose={() => setShowStats(false)} groupId={groupId} />
         </motion.nav>
     );
 }

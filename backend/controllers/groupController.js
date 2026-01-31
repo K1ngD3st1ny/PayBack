@@ -160,10 +160,47 @@ const getUserGroups = async (req, res) => {
     }
 };
 
+// @desc    Delete a group
+// @route   DELETE /api/groups/:id
+// @access  Private
+const deleteGroup = async (req, res) => {
+    try {
+        const group = await Group.findById(req.params.id);
+
+        if (!group) {
+            return res.status(404).json({ message: 'Group not found' });
+        }
+
+        // Check if user is a member (or maybe restricted to creator? For now, any member can delete as per prompt "Delete Active Protocol" implying availability)
+        // But usually deletion is sensitive. "Allow any user to add transactions" was previous context.
+        // Prompt says "Add a Delete Protocol button within each Active Protocol section".
+        // I'll allow any member to delete for simplicity unless restricted. 
+        // Better to restrict to members.
+        if (!group.members.includes(req.user._id)) {
+            return res.status(403).json({ message: 'Not authorized to delete this group' });
+        }
+
+        // Delete all expenses associated with this group
+        await Expense.deleteMany({ group: group._id });
+
+        // Delete the group
+        await Group.findByIdAndDelete(req.params.id);
+
+        // Invalidate cache
+        const cacheKey = `group_balance:${group._id}`;
+        await redis.del(cacheKey);
+
+        res.json({ message: 'Group deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createGroup,
     getGroupDetails,
     addMember,
     getGroupBalances,
-    getUserGroups
+    getUserGroups,
+    deleteGroup
 };

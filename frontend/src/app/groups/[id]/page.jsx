@@ -9,7 +9,7 @@ import Card from '@/components/ui/Card';
 import { BentoGrid } from '@/components/ui/BentoGrid'; // BentoGridItem not directly used in children, but good to have
 import Script from 'next/script';
 import { motion } from 'framer-motion';
-import { ArrowLeft, UserPlus, Receipt, RefreshCw, AlertCircle, Wallet, Trash2 } from 'lucide-react';
+import { ArrowLeft, UserPlus, Receipt, RefreshCw, AlertCircle, Wallet, Trash2, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
@@ -27,7 +27,11 @@ export default function GroupDetails() {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
     const [paidBy, setPaidBy] = useState(''); // ID of user who paid
+    const [tag, setTag] = useState('Other');
     const [splitWith, setSplitWith] = useState([]); // Array of user IDs
+    const [deleteGroupModal, setDeleteGroupModal] = useState(false);
+
+    const TAGS = ['Food', 'Travel', 'Rent', 'Groceries', 'Utilities', 'Entertainment', 'Shopping', 'Medical', 'Other'];
 
     // Modal State
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, expenseId: null });
@@ -130,12 +134,14 @@ export default function GroupDetails() {
                 amount: totalAmount,
                 groupId: id,
                 splitDetails,
-                paidBy: paidBy || currentUser._id
+                paidBy: paidBy || currentUser._id,
+                tag
             });
 
             // Reset form
             setDescription('');
             setAmount('');
+            setTag('Other');
             setManualSplits(prev => {
                 const reset = {};
                 group.members.forEach(m => reset[m._id] = 0);
@@ -160,6 +166,16 @@ export default function GroupDetails() {
             setDeleteModal({ isOpen: false, expenseId: null });
         } catch (error) {
             alert('Failed to delete expense');
+        }
+    };
+
+    const handleDeleteGroup = async () => {
+        try {
+            await api.delete(`/groups/${id}`);
+            router.push('/dashboard');
+        } catch (error) {
+            console.error('Failed to delete group', error);
+            alert('Failed to delete protocol');
         }
     };
 
@@ -242,7 +258,13 @@ export default function GroupDetails() {
                 </div>
                 <div className="text-right text-sm text-cyan-400/60 font-mono hidden md:block">
                     PROTOCOL ID: {group._id} <br />
-                    NODES ACTIVE: {group.members.length}
+                    NODES ACTIVE: {group.members.length} <br />
+                    <button
+                        onClick={() => setDeleteGroupModal(true)}
+                        className="mt-2 text-red-500 hover:text-red-400 underline decoration-red-500/30 hover:decoration-red-400 transition-all cursor-pointer flex items-center justify-end gap-1 ml-auto"
+                    >
+                        <Trash2 size={12} /> DELETE PROTOCOL
+                    </button>
                 </div>
             </div>
 
@@ -302,6 +324,30 @@ export default function GroupDetails() {
                                         <option key={m._id} value={m._id}>{m.name} {m._id === currentUser?._id ? '(YOU)' : ''}</option>
                                     ))}
                                 </select>
+                            </div>
+                        </div>
+
+                        {/* Tag Selection */}
+                        <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2">
+                            <label className="text-xs text-purple-400 mb-2 block font-mono tracking-wider flex items-center gap-2">
+                                <Tag size={12} /> CATEGORY
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {TAGS.map(t => (
+                                    <button
+                                        key={t}
+                                        type="button"
+                                        onClick={() => setTag(t)}
+                                        className={cn(
+                                            "px-3 py-1 rounded-full text-xs font-bold border transition-all",
+                                            tag === t
+                                                ? "bg-purple-500/20 border-purple-500 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+                                                : "bg-black/40 border-white/10 text-gray-500 hover:text-gray-300"
+                                        )}
+                                    >
+                                        {t}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -417,7 +463,14 @@ export default function GroupDetails() {
                         {expenses.map(exp => (
                             <div key={exp._id} className="flex justify-between items-center py-3 border-b border-white/5 last:border-0 hover:bg-white/5 px-3 rounded transition-colors group">
                                 <div>
-                                    <div className="font-medium text-white group-hover:text-purple-300 transition-colors">{exp.description}</div>
+                                    <div className="font-medium text-white group-hover:text-purple-300 transition-colors">
+                                        {exp.description}
+                                        {exp.tag && exp.tag !== 'Other' && (
+                                            <span className="ml-2 text-[10px] uppercase bg-white/10 px-1.5 py-0.5 rounded text-gray-400 border border-white/5">
+                                                {exp.tag}
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="text-xs text-gray-500 font-mono">SOURCE: {exp.paid_by.name}</div>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -459,6 +512,16 @@ export default function GroupDetails() {
                 title="Delete Transaction?"
                 message="Are you sure you want to delete this transaction? This action cannot be undone."
                 confirmText="Delete"
+                cancelText="Cancel"
+            />
+
+            <ConfirmationModal
+                isOpen={deleteGroupModal}
+                onClose={() => setDeleteGroupModal(false)}
+                onConfirm={handleDeleteGroup}
+                title="Delete Active Protocol?"
+                message="Are you sure you want to delete this protocol? All associated expenses will be permanently removed."
+                confirmText="Delete Protocol"
                 cancelText="Cancel"
             />
         </div>

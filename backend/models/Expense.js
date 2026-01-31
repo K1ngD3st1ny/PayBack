@@ -9,6 +9,11 @@ const expenseSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    tag: {
+        type: String,
+        default: 'Other',
+        enum: ['Food', 'Travel', 'Rent', 'Groceries', 'Utilities', 'Entertainment', 'Shopping', 'Medical', 'Other']
+    },
     group: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Group',

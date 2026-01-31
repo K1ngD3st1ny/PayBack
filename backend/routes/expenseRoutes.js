@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { addExpense, getGroupExpenses, deleteExpense } = require('../controllers/expenseController');
+const { addExpense, getGroupExpenses, deleteExpense, getUserExpenses } = require('../controllers/expenseController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.post('/add', protect, addExpense);
+router.get('/user', protect, getUserExpenses);
 router.delete('/:id', protect, deleteExpense);
 // Note: The prompt specified GET /api/groups/:id/expenses but logically it might be under /expenses route or /groups route.
 // The prompt listed: "GET /api/groups/:id/expenses". 
