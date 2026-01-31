@@ -9,7 +9,7 @@ import Card from '@/components/ui/Card';
 import { BentoGrid } from '@/components/ui/BentoGrid'; // BentoGridItem not directly used in children, but good to have
 import Script from 'next/script';
 import { motion } from 'framer-motion';
-import { ArrowLeft, UserPlus, Receipt, RefreshCw, AlertCircle, Wallet } from 'lucide-react';
+import { ArrowLeft, UserPlus, Receipt, RefreshCw, AlertCircle, Wallet, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function GroupDetails() {
@@ -25,6 +25,8 @@ export default function GroupDetails() {
     const [newMemberEmail, setNewMemberEmail] = useState('');
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
+    const [paidBy, setPaidBy] = useState(''); // ID of user who paid
+    const [splitWith, setSplitWith] = useState([]); // Array of user IDs
 
     // Split Logic
     const [splitType, setSplitType] = useState('EQUAL'); // 'EQUAL' | 'UNEQUAL'
@@ -48,7 +50,17 @@ export default function GroupDetails() {
             setExpenses(expenseRes.data);
             setBalances(balanceRes.data);
 
-            // Initialize manual splits defaults
+            setBalances(balanceRes.data);
+
+            // Initialize defaults
+            const memberIds = groupRes.data.members.map(m => m._id);
+            setSplitWith(memberIds);
+
+            // Set default payer to current user if not set
+            if (!paidBy && currentUser) {
+                setPaidBy(currentUser._id);
+            }
+
             const initialSplits = {};
             groupRes.data.members.forEach(m => initialSplits[m._id] = 0);
             setManualSplits(initialSplits);
@@ -88,9 +100,11 @@ export default function GroupDetails() {
 
         try {
             if (splitType === 'EQUAL') {
-                const members = group.members;
-                const splitAmount = totalAmount / members.length;
-                splitDetails = members.map(m => ({
+                const selectedMembers = group.members.filter(m => splitWith.includes(m._id));
+                if (selectedMembers.length === 0) return alert('Select at least one person to split with');
+
+                const splitAmount = totalAmount / selectedMembers.length;
+                splitDetails = selectedMembers.map(m => ({
                     user: m._id,
                     amount_owed: splitAmount
                 }));
@@ -111,7 +125,8 @@ export default function GroupDetails() {
                 description,
                 amount: totalAmount,
                 groupId: id,
-                splitDetails
+                splitDetails,
+                paidBy: paidBy || currentUser._id
             });
 
             // Reset form
@@ -126,6 +141,23 @@ export default function GroupDetails() {
         } catch (error) {
             alert('Failed to add expense');
         }
+    };
+
+    const handleDeleteExpense = async (expenseId) => {
+        if (!confirm('Are you sure you want to delete this transaction?')) return;
+        try {
+            await api.delete(`/expenses/${expenseId}`);
+            fetchGroupData();
+        } catch (error) {
+            alert('Failed to delete expense');
+        }
+    };
+
+    const toggleSplitWith = (userId) => {
+        setSplitWith(prev => {
+            if (prev.includes(userId)) return prev.filter(id => id !== userId);
+            return [...prev, userId];
+        });
     };
 
     const handleSettle = async (transaction) => {
@@ -248,6 +280,45 @@ export default function GroupDetails() {
                             </div>
                         </div>
 
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="flex-1">
+                                <label className="text-xs text-purple-400 mb-2 block font-mono tracking-wider">PAID BY</label>
+                                <select
+                                    className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm focus:border-purple-500 outline-none"
+                                    value={paidBy}
+                                    onChange={e => setPaidBy(e.target.value)}
+                                >
+                                    {group.members.map(m => (
+                                        <option key={m._id} value={m._id}>{m.name} {m._id === currentUser?._id ? '(YOU)' : ''}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Split Selection for EQUAL */}
+                        {splitType === 'EQUAL' && (
+                            <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2">
+                                <label className="text-xs text-gray-400 mb-2 block font-mono">SPLIT WITH</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {group.members.map(member => (
+                                        <button
+                                            key={member._id}
+                                            type="button"
+                                            onClick={() => toggleSplitWith(member._id)}
+                                            className={cn(
+                                                "px-3 py-1 rounded-full text-xs font-bold border transition-all",
+                                                splitWith.includes(member._id)
+                                                    ? "bg-cyan-500/20 border-cyan-500 text-cyan-400"
+                                                    : "bg-black/40 border-white/10 text-gray-500"
+                                            )}
+                                        >
+                                            {member.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {splitType === 'UNEQUAL' && (
                             <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
                                 <div className="flex justify-between text-xs text-gray-400 mb-2 font-mono">
@@ -339,7 +410,16 @@ export default function GroupDetails() {
                                     <div className="font-medium text-white group-hover:text-purple-300 transition-colors">{exp.description}</div>
                                     <div className="text-xs text-gray-500 font-mono">SOURCE: {exp.paid_by.name}</div>
                                 </div>
-                                <div className="font-orbitron font-bold text-cyan-400">₹{exp.amount}</div>
+                                <div className="flex items-center gap-3">
+                                    <div className="font-orbitron font-bold text-cyan-400">₹{exp.amount}</div>
+                                    <button
+                                        onClick={() => handleDeleteExpense(exp._id)}
+                                        className="text-gray-600 hover:text-red-500 transition-colors p-1"
+                                        title="Delete Transaction"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
