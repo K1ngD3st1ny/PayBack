@@ -3,15 +3,97 @@
 @theme {
   --font-sans: var(--font-inter);
   --font-orbitron: var(--font-orbitron);
+
+  /* Custom Animations */
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
 }
 
 :root {
-  --background: #000000;
+  /* macOS-inspired Palette (Extracted from Video) */
+  --background: transparent;
   --foreground: #ffffff;
+
+  /* Glassmorphism Variables */
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-surface: rgba(255, 255, 255, 0.05);
+  --glass-highlight: rgba(255, 255, 255, 0.15);
+
+  /* Accents */
+  --accent-primary: #8b5cf6;
+  /* Violet */
+  --accent-secondary: #3b82f6;
+  /* Blue */
+  --accent-glow: rgba(139, 92, 246, 0.5);
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 
+  Glassmorphism Utilities 
+  These classes create the signature "frosted glass" look
+*/
+.glass {
+  background: var(--glass-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.glass-card {
+  background: rgba(20, 20, 30, 0.4);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.glass-button {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 100vh;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }

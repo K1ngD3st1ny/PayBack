@@ -4,21 +4,27 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CreditCard, PieChart } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import ProfileMenu from './ProfileMenu';
 import StatisticsModal from './StatisticsModal';
+import { cn } from '@/lib/utils';
 
 export default function Navbar() {
     const [user, setUser] = useState(null);
     const [showStats, setShowStats] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
     const pathname = usePathname();
+    const { scrollY } = useScroll();
+
+    useMotionValueEvent(scrollY, "change", (latest) => {
+        setScrolled(latest > 20);
+    });
 
     // Check if we are in a group details page
     const isGroupPage = pathname?.startsWith('/groups/');
     const groupId = isGroupPage ? pathname.split('/')[2] : null;
 
     useEffect(() => {
-        // Initial fetch of user from local storage to pass to ProfileMenu
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
@@ -26,39 +32,48 @@ export default function Navbar() {
     }, []);
 
     return (
-        <motion.nav
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-white/10 bg-black/50 backdrop-blur-md px-6 flex items-center justify-between"
-        >
-            <div className="flex items-center gap-8">
-                <Link href="/dashboard" className="flex items-center gap-2 group">
-                    <div className="p-2 rounded-lg bg-pink-500/10 group-hover:bg-pink-500/20 transition-colors">
-                        <CreditCard className="w-6 h-6 text-pink-500" />
-                    </div>
-                    <span className="font-orbitron font-bold text-xl tracking-wider text-white">
-                        PAY<span className="text-pink-500">BACK</span>
-                    </span>
-                </Link>
-
-                {/* Statistics Button - Only visible in Group Context */}
-                {user && isGroupPage && groupId && (
-                    <button
-                        onClick={() => setShowStats(true)}
-                        className="p-2 rounded-lg hover:bg-white/5 transition-colors text-gray-400 hover:text-cyan-400 flex items-center gap-2 group"
-                        title="Protocol Analytics"
-                    >
-                        <PieChart size={20} className="group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-mono hidden md:block">STATS</span>
-                    </button>
+        <>
+            <motion.nav
+                initial={{ y: -100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className={cn(
+                    "fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-5xl h-16 rounded-2xl glass transition-all duration-300 px-4 flex items-center justify-between",
+                    scrolled ? "bg-black/40 border-white/10 shadow-2xl backdrop-blur-xl" : "bg-white/5 border-white/5 shadow-lg backdrop-blur-md"
                 )}
-            </div>
+            >
+                <div className="flex items-center gap-6 pl-2">
+                    <Link href="/dashboard" className="flex items-center gap-2 group">
+                        <div className="p-2 rounded-lg bg-pink-500/10 group-hover:bg-pink-500/20 transition-all duration-300 group-hover:scale-105">
+                            <CreditCard className="w-5 h-5 text-pink-400 group-hover:text-pink-300" />
+                        </div>
+                        <span className="font-orbitron font-bold text-lg tracking-wider text-white/90 group-hover:text-white transition-colors">
+                            PAY<span className="text-pink-500">BACK</span>
+                        </span>
+                    </Link>
 
-            <div className="flex items-center gap-4">
-                {user && <ProfileMenu user={user} />}
-            </div>
+                    {/* Statistics Button - Only visible in Group Context */}
+                    {user && isGroupPage && groupId && (
+                        <>
+                            <div className="h-6 w-px bg-white/10 mx-2" />
+                            <button
+                                onClick={() => setShowStats(true)}
+                                className="px-3 py-1.5 rounded-full hover:bg-white/10 transition-all text-xs font-medium text-purple-200 hover:text-white flex items-center gap-2 group border border-transparent hover:border-white/10"
+                                title="Protocol Analytics"
+                            >
+                                <PieChart size={14} className="group-hover:rotate-12 transition-transform duration-500" />
+                                <span>STATS</span>
+                            </button>
+                        </>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-4 pr-1">
+                    {user && <ProfileMenu user={user} />}
+                </div>
+            </motion.nav>
 
             <StatisticsModal isOpen={showStats} onClose={() => setShowStats(false)} groupId={groupId} />
-        </motion.nav>
+        </>
     );
 }

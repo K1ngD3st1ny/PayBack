@@ -230,21 +230,21 @@ export default function GroupDetails() {
 
             <BentoGrid>
                 {/* 1. Add Expense Module (Large) */}
-                <div className="md:col-span-2 md:row-span-2 glass-panel p-6 rounded-xl flex flex-col border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.1)] overflow-hidden">
-                    <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4 shrink-0">
+                <div className="md:col-span-2 md:row-span-2 glass-card p-6 rounded-3xl flex flex-col overflow-hidden">
+                    <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4 shrink-0">
                         <h2 className="text-lg font-bold flex items-center gap-2 text-white font-orbitron">
                             <Receipt size={20} className="text-pink-500" /> NEW TRANSACTION
                         </h2>
-                        <div className="flex bg-black/40 rounded-lg p-1 border border-white/10">
+                        <div className="flex bg-white/5 rounded-lg p-1 border border-white/5">
                             <button
                                 onClick={() => setSplitType('EQUAL')}
-                                className={cn("px-4 py-1 text-xs rounded-md transition-all font-bold", splitType === 'EQUAL' ? "bg-cyan-500 text-black shadow-[0_0_10px_#06b6d4]" : "text-gray-400 hover:text-white")}
+                                className={cn("px-4 py-1.5 text-xs rounded-md transition-all font-bold", splitType === 'EQUAL' ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20" : "text-gray-400 hover:text-white")}
                             >
                                 EQUAL
                             </button>
                             <button
                                 onClick={() => setSplitType('UNEQUAL')}
-                                className={cn("px-4 py-1 text-xs rounded-md transition-all font-bold", splitType === 'UNEQUAL' ? "bg-pink-500 text-black shadow-[0_0_10px_#ec4899]" : "text-gray-400 hover:text-white")}
+                                className={cn("px-4 py-1.5 text-xs rounded-md transition-all font-bold", splitType === 'UNEQUAL' ? "bg-pink-500 text-black shadow-lg shadow-pink-500/20" : "text-gray-400 hover:text-white")}
                             >
                                 UNEQUAL
                             </button>
@@ -260,6 +260,7 @@ export default function GroupDetails() {
                                         placeholder="e.g. Server Upkeep"
                                         value={description}
                                         onChange={e => setDescription(e.target.value)}
+                                        className="bg-white/5 border-white/10 focus:border-cyan-500/50"
                                     />
                                 </div>
                                 <div className="w-full md:w-1/3">
@@ -269,6 +270,7 @@ export default function GroupDetails() {
                                         placeholder="0.00"
                                         value={amount}
                                         onChange={e => setAmount(e.target.value)}
+                                        className="bg-white/5 border-white/10 focus:border-pink-500/50"
                                     />
                                 </div>
                             </div>
@@ -276,20 +278,22 @@ export default function GroupDetails() {
                             <div className="flex flex-col md:flex-row gap-4">
                                 <div className="flex-1">
                                     <label className="text-xs text-purple-400 mb-2 block font-mono tracking-wider">PAID BY</label>
-                                    <select
-                                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm focus:border-purple-500 outline-none"
-                                        value={paidBy}
-                                        onChange={e => setPaidBy(e.target.value)}
-                                    >
-                                        {group.members.map(m => (
-                                            <option key={m._id} value={m._id}>{m.name} {m._id === currentUser?._id ? '(YOU)' : ''}</option>
-                                        ))}
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:border-purple-500 outline-none appearance-none cursor-pointer hover:bg-white/10 transition-colors"
+                                            value={paidBy}
+                                            onChange={e => setPaidBy(e.target.value)}
+                                        >
+                                            {group.members.map(m => (
+                                                <option key={m._id} value={m._id} className="bg-gray-900">{m.name} {m._id === currentUser?._id ? '(YOU)' : ''}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Tag Selection */}
-                            <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2">
+                            <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-2">
                                 <label className="text-xs text-purple-400 mb-2 block font-mono tracking-wider flex items-center gap-2">
                                     <Tag size={12} /> CATEGORY
                                 </label>
@@ -303,7 +307,7 @@ export default function GroupDetails() {
                                                 "px-3 py-1 rounded-full text-xs font-bold border transition-all",
                                                 tag === t
                                                     ? "bg-purple-500/20 border-purple-500 text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
-                                                    : "bg-black/40 border-white/10 text-gray-500 hover:text-gray-300"
+                                                    : "bg-white/5 border-white/5 text-gray-500 hover:text-gray-300 hover:bg-white/10"
                                             )}
                                         >
                                             {t}
@@ -314,7 +318,7 @@ export default function GroupDetails() {
 
                             {/* Split Selection for EQUAL */}
                             {splitType === 'EQUAL' && (
-                                <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2">
+                                <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-2">
                                     <label className="text-xs text-gray-400 mb-2 block font-mono">SPLIT WITH</label>
                                     <div className="flex flex-wrap gap-2">
                                         {group.members.map(member => (
@@ -325,8 +329,8 @@ export default function GroupDetails() {
                                                 className={cn(
                                                     "px-3 py-1 rounded-full text-xs font-bold border transition-all",
                                                     splitWith.includes(member._id)
-                                                        ? "bg-cyan-500/20 border-cyan-500 text-cyan-400"
-                                                        : "bg-black/40 border-white/10 text-gray-500"
+                                                        ? "bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                                                        : "bg-white/5 border-white/5 text-gray-500 hover:text-gray-300 hover:bg-white/10"
                                                 )}
                                             >
                                                 {member.name}
@@ -337,7 +341,7 @@ export default function GroupDetails() {
                             )}
 
                             {splitType === 'UNEQUAL' && (
-                                <div className="bg-black/30 p-4 rounded-lg border border-white/5 space-y-2">
+                                <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-2">
                                     <div className="flex justify-between text-xs text-gray-400 mb-2 font-mono">
                                         <span>MEMBER SPLITS</span>
                                         <span className={remainingSplit !== 0 ? "text-red-500 font-bold" : "text-green-500 font-bold"}>
@@ -349,7 +353,7 @@ export default function GroupDetails() {
                                             <span className="text-gray-300">{member.name} {member._id === currentUser?._id && <span className="text-cyan-500 text-xs">(YOU)</span>}</span>
                                             <input
                                                 type="number"
-                                                className="w-24 bg-black/50 border border-white/10 rounded px-2 py-1 text-right focus:border-cyan-500 transition-colors text-white outline-none"
+                                                className="w-24 bg-black/20 border border-white/10 rounded px-2 py-1 text-right focus:border-cyan-500 transition-colors text-white outline-none"
                                                 placeholder="0"
                                                 value={manualSplits[member._id] || ''}
                                                 onChange={(e) => handleManualSplitChange(member._id, e.target.value)}
@@ -366,8 +370,8 @@ export default function GroupDetails() {
                             )}
                         </div>
 
-                        <div className="pt-4 mt-auto border-t border-white/5 bg-black/50 backdrop-blur-sm z-10">
-                            <Button type="submit" className="w-full" disabled={splitType === 'UNEQUAL' && Math.abs(remainingSplit) > 0.1}>
+                        <div className="pt-4 mt-auto">
+                            <Button type="submit" className="w-full h-12 text-base shadow-xl shadow-purple-900/20" disabled={splitType === 'UNEQUAL' && Math.abs(remainingSplit) > 0.1}>
                                 INITIATE TRANSFER
                             </Button>
                         </div>
@@ -375,8 +379,8 @@ export default function GroupDetails() {
                 </div>
 
                 {/* 2. Debt Matrix (Tall) */}
-                <div className="md:row-span-3 glass-panel p-6 rounded-xl flex flex-col border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.1)]">
-                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-4">
+                <div className="md:row-span-3 glass-card p-6 rounded-3xl flex flex-col overflow-hidden">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-4">
                         <h2 className="text-lg font-bold text-white font-orbitron flex items-center gap-2">
                             <Wallet size={20} className="text-cyan-500" /> DEBT MATRIX
                         </h2>
@@ -385,7 +389,7 @@ export default function GroupDetails() {
 
                     <div className="space-y-3 overflow-y-auto flex-1 pr-1 custom-scrollbar">
                         {balances.length === 0 ? (
-                            <div className="text-center text-gray-600 py-10 font-mono text-sm">ALL LEDGERS BALANCED.</div>
+                            <div className="text-center text-gray-500 py-10 font-mono text-sm opacity-60">ALL LEDGERS BALANCED.</div>
                         ) : (
                             balances.map((t, idx) => {
                                 const isMePayer = t.from === currentUser?._id;
@@ -394,18 +398,18 @@ export default function GroupDetails() {
                                 const toName = group.members.find(m => m._id === t.to)?.name || 'Unknown';
 
                                 return (
-                                    <div key={idx} className="p-3 bg-black/40 rounded-lg border border-white/5 hover:border-white/20 transition-all">
+                                    <div key={idx} className="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition-all hover:bg-white/10">
                                         <div className="flex justify-between text-xs mb-1 font-mono">
                                             <span className={cn(isMePayer ? "text-red-400 font-bold" : "text-gray-400")}>{fromName}</span>
-                                            <span className="text-gray-600 text-[10px]">OWES</span>
+                                            <span className="text-gray-600 text-[10px] self-center">OWES</span>
                                             <span className={cn(isMePayee ? "text-green-400 font-bold" : "text-gray-400")}>{toName}</span>
                                         </div>
                                         <div className="flex justify-between items-end mt-2">
-                                            <span className="font-orbitron text-lg text-white">₹{t.amount}</span>
+                                            <span className="font-orbitron text-xl text-white tracking-wide">₹{t.amount}</span>
                                             {isMePayer && (
                                                 <button
                                                     onClick={() => handleSettle(t)}
-                                                    className="bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500 hover:text-white text-[10px] font-bold px-3 py-1 rounded transition-all"
+                                                    className="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all"
                                                 >
                                                     SETTLE
                                                 </button>
@@ -419,34 +423,38 @@ export default function GroupDetails() {
                 </div>
 
                 {/* 3. Recent Activity (Wide) */}
-                <div className="md:col-span-2 glass-panel p-6 rounded-xl min-h-[12rem] flex flex-col border border-purple-500/20">
-                    <h2 className="text-lg font-bold mb-4 text-white font-orbitron border-b border-white/10 pb-2">RECENT TRANSMISSIONS</h2>
+                <div className="md:col-span-2 glass-card p-6 rounded-3xl min-h-[12rem] flex flex-col">
+                    <h2 className="text-lg font-bold mb-4 text-white font-orbitron border-b border-white/5 pb-2">RECENT TRANSMISSIONS</h2>
                     <div className="space-y-2 overflow-y-auto max-h-48 custom-scrollbar">
-                        {expenses.map(exp => (
-                            <div key={exp._id} className="flex justify-between items-center py-3 border-b border-white/5 last:border-0 hover:bg-white/5 px-3 rounded transition-colors group">
-                                <div>
-                                    <div className="font-medium text-white group-hover:text-purple-300 transition-colors">
-                                        {exp.description}
-                                        {exp.tag && exp.tag !== 'Other' && (
-                                            <span className="ml-2 text-[10px] uppercase bg-white/10 px-1.5 py-0.5 rounded text-gray-400 border border-white/5">
-                                                {exp.tag}
-                                            </span>
-                                        )}
+                        {expenses.length === 0 ? (
+                            <div className="text-center text-gray-500 py-8 font-mono text-sm opacity-60">NO SYSTEM ACTIVITY DETECTED.</div>
+                        ) : (
+                            expenses.map(exp => (
+                                <div key={exp._id} className="flex justify-between items-center py-3 border-b border-white/5 last:border-0 hover:bg-white/5 px-3 rounded-lg transition-colors group">
+                                    <div>
+                                        <div className="font-medium text-white group-hover:text-purple-300 transition-colors">
+                                            {exp.description}
+                                            {exp.tag && exp.tag !== 'Other' && (
+                                                <span className="ml-2 text-[10px] uppercase bg-white/10 px-1.5 py-0.5 rounded text-gray-400 border border-white/5">
+                                                    {exp.tag}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-gray-500 font-mono">SOURCE: {exp.paid_by.name}</div>
                                     </div>
-                                    <div className="text-xs text-gray-500 font-mono">SOURCE: {exp.paid_by.name}</div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="font-orbitron font-bold text-cyan-400">₹{exp.amount}</div>
+                                        <button
+                                            onClick={() => handleDeleteClick(exp._id)}
+                                            className="text-gray-600 hover:text-red-500 transition-colors p-2 hover:bg-white/5 rounded-full"
+                                            title="Delete Transaction"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="font-orbitron font-bold text-cyan-400">₹{exp.amount}</div>
-                                    <button
-                                        onClick={() => handleDeleteClick(exp._id)}
-                                        className="text-gray-600 hover:text-red-500 transition-colors p-1"
-                                        title="Delete Transaction"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
             </BentoGrid>
