@@ -1,10 +1,8 @@
-# PayBack // Neon
+# PayBack
 
 A cyberpunk-themed expense splitting application with a modern, macOS-inspired glassmorphism UI. Manage group expenses, split bills, and settle debts securely.
 
 🔗 **Live Demo:** [https://pay-back-tau.vercel.app/](https://pay-back-tau.vercel.app/)
-
-![PayBack Preview](/frontend/public/window.svg)
 
 ## ✨ Features
 
