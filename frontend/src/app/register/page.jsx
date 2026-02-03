@@ -11,7 +11,7 @@ import api from '@/lib/api';
 
 export default function Register() {
     const router = useRouter();
-    const [formData, setFormData] = useState({ name: '', email: '', password: '', upiId: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -72,13 +72,7 @@ export default function Register() {
                                 required
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm text-gray-400 mb-1">UPI ID (OPTIONAL)</label>
-                            <Input
-                                value={formData.upiId}
-                                onChange={(e) => setFormData({ ...formData, upiId: e.target.value })}
-                            />
-                        </div>
+
                         <Button type="submit" className="w-full" disabled={loading}>
                             {loading ? 'INITIALIZING...' : 'REGISTER'}
                         </Button>

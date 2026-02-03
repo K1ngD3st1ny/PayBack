@@ -4,6 +4,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { X, Lock, CreditCard } from 'lucide-react';
 import api from '@/lib/api';
 import Button from './ui/Button';
+import FeedbackPopup from './ui/FeedbackPopup';
 
 // Initialize Stripe outside component to avoid recreation
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
@@ -104,57 +105,93 @@ const CheckoutForm = ({ amount, payeeId, groupId, onSuccess, onClose }) => {
 
 export default function PaymentModal({ isOpen, onClose, amount, payeeId, groupId, onSuccess }) {
     const [clientSecret, setClientSecret] = useState('');
+    const [feedback, setFeedback] = useState({ isOpen: false, message: '', type: 'success' });
 
     useEffect(() => {
         if (isOpen && amount > 0) {
+            setClientSecret(''); // Reset
             // Create PaymentIntent as soon as the modal opens
-            api.post('/payment/create-payment-intent', { amount, currency: 'inr' })
+            api.post('/payment/create-payment-intent', { amount, currency: 'inr', payeeId })
                 .then(res => setClientSecret(res.data.clientSecret))
                 .catch(err => {
                     console.error('Failed to init payment', err);
-                    alert("Failed to initialize secure payment gateway.");
-                    onClose();
+                    if (err.response?.data?.code === 'MISSING_STRIPE_ACCOUNT') {
+                        setFeedback({
+                            isOpen: true,
+                            message: 'Payment failed: Recipient has not added a Stripe account.',
+                            type: 'error'
+                        });
+                        // Close modal after a short delay so user sees the message? 
+                        // Or keep modal open but empty?
+                        // Prompt says: "Payment must NOT be initiated", "Show a brief failure popup", "Disappear automatically".
+                        // "No retry should be attempted automatically"
+                        setTimeout(() => {
+                            onClose();
+                        }, 2000);
+                    } else {
+                        alert("Failed to initialize secure payment gateway.");
+                        onClose();
+                    }
                 });
         }
-    }, [isOpen, amount]);
+    }, [isOpen, amount, payeeId]);
 
-    if (!isOpen) return null;
+    if (!isOpen && !feedback.isOpen) return null;
+
+    const handleSuccess = () => {
+        setFeedback({ isOpen: true, message: 'Payment successful', type: 'success' });
+        setTimeout(() => {
+            onSuccess();
+            onClose();
+        }, 1000);
+    };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-            <div className="relative w-full max-w-md bg-black border border-purple-500/30 rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.2)] flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <>
+            <FeedbackPopup
+                isOpen={feedback.isOpen}
+                message={feedback.message}
+                type={feedback.type}
+                onClose={() => setFeedback(prev => ({ ...prev, isOpen: false }))}
+            />
 
-                {/* Header */}
-                <div className="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-black/95 z-10">
-                    <div>
-                        <h2 className="text-xl font-bold text-white font-orbitron tracking-wide">SECURE CHECKOUT</h2>
-                        <p className="text-xs text-purple-400 font-mono mt-1">ENCRYPTED TRANSACTION CHANNEL</p>
-                    </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-                        <X size={24} />
-                    </button>
-                </div>
+            {isOpen && !feedback.isOpen && ( // Hide modal if showing error feedback? Or overlay?
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                    <div className="relative w-full max-w-md bg-black border border-purple-500/30 rounded-2xl shadow-[0_0_50px_rgba(168,85,247,0.2)] flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar">
 
-                {/* Body */}
-                <div className="p-6">
-                    {clientSecret ? (
-                        <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night' } }}>
-                            <CheckoutForm
-                                amount={amount}
-                                payeeId={payeeId}
-                                groupId={groupId}
-                                onSuccess={onSuccess}
-                                onClose={onClose}
-                            />
-                        </Elements>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-                            <div className="text-purple-400 text-xs font-mono animate-pulse">ESTABLISHING UPLINK...</div>
+                        {/* Header */}
+                        <div className="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-black/95 z-10">
+                            <div>
+                                <h2 className="text-xl font-bold text-white font-orbitron tracking-wide">SECURE CHECKOUT</h2>
+                                <p className="text-xs text-purple-400 font-mono mt-1">ENCRYPTED TRANSACTION CHANNEL</p>
+                            </div>
+                            <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+                                <X size={24} />
+                            </button>
                         </div>
-                    )}
+
+                        {/* Body */}
+                        <div className="p-6">
+                            {clientSecret ? (
+                                <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night' } }}>
+                                    <CheckoutForm
+                                        amount={amount}
+                                        payeeId={payeeId}
+                                        groupId={groupId}
+                                        onSuccess={handleSuccess}
+                                        onClose={() => { }} // Handle close in wrapper
+                                    />
+                                </Elements>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                    <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="text-purple-400 text-xs font-mono animate-pulse">ESTABLISHING UPLINK...</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            )}
+        </>
     );
 }

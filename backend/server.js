@@ -19,6 +19,15 @@ app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
 
+// Logging Middleware
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    if (req.method === 'POST' || req.method === 'PUT') {
+        console.log('Body:', JSON.stringify(req.body, null, 2));
+    }
+    next();
+});
+
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/groups', require('./routes/groupRoutes'));

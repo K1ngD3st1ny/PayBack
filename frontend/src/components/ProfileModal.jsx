@@ -7,6 +7,7 @@ import { X, Upload, Save, User, Camera, Loader2 } from 'lucide-react';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import api from '../lib/api';
+import StripeAccountInput from './profile/StripeAccountInput';
 
 export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
     const [name, setName] = useState(user?.name || '');
@@ -168,6 +169,16 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
                                     />
                                 </div>
 
+                                <div className="space-y-2">
+                                    <StripeAccountInput
+                                        onUpdate={() => {
+                                            const updatedUser = { ...user, hasStripeAccount: true };
+                                            onUpdate(updatedUser);
+                                        }}
+                                        hasStripeAccount={user?.hasStripeAccount}
+                                    />
+                                </div>
+
                                 <div className="flex gap-3 pt-4">
                                     <Button
                                         type="button"
@@ -194,9 +205,10 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
                             </form>
                         </div>
                     </motion.div>
-                </div>
-            )}
-        </AnimatePresence>
+                </div >
+            )
+            }
+        </AnimatePresence >
     );
 
     return createPortal(modalContent, document.body);

@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, UserPlus, Receipt, RefreshCw, AlertCircle, Wallet, Trash2, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import FeedbackPopup from '@/components/ui/FeedbackPopup';
 
 export default function GroupDetails() {
     const { id } = useParams();
@@ -40,6 +41,7 @@ export default function GroupDetails() {
     const [splitType, setSplitType] = useState('EQUAL'); // 'EQUAL' | 'UNEQUAL'
     const [manualSplits, setManualSplits] = useState({}); // { userId: amount }
     const [splitError, setSplitError] = useState('');
+    const [feedback, setFeedback] = useState({ isOpen: false, message: '', type: 'success' });
 
     const [paymentModal, setPaymentModal] = useState({ isOpen: false, amount: 0, payeeId: null });
 
@@ -493,8 +495,15 @@ export default function GroupDetails() {
                 groupId={id}
                 onSuccess={() => {
                     fetchGroupData();
-                    alert("Payment Successfully Verified!");
+                    setFeedback({ isOpen: true, message: 'Payment successful', type: 'success' });
                 }}
+            />
+
+            <FeedbackPopup
+                isOpen={feedback.isOpen}
+                message={feedback.message}
+                type={feedback.type}
+                onClose={() => setFeedback(prev => ({ ...prev, isOpen: false }))}
             />
         </div>
     );

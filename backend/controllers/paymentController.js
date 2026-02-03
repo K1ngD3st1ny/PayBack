@@ -1,6 +1,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Transaction = require('../models/Transaction');
+const User = require('../models/User');
 const redis = require('../config/redis');
 const Stripe = require('stripe');
 
@@ -97,28 +98,55 @@ const verifyPayment = async (req, res) => {
 // @route   POST /api/payment/create-payment-intent
 // @access  Private
 const createStripePaymentIntent = async (req, res) => {
-    const { amount, currency = 'inr' } = req.body;
+    const { amount, currency = 'inr', payeeId } = req.body;
+    console.log('Create Intent Request:', { amount, payeeId, userId: req.user._id });
 
     if (!stripe) {
         return res.status(503).json({ message: 'Stripe not configured' });
     }
 
     try {
+        // Validate Payee and get Stripe Account ID
+        const payee = await User.findById(payeeId).select('+stripeAccountId');
+        if (!payee) {
+            return res.status(404).json({ message: 'Recipient not found' });
+        }
+
+        if (!payee.stripeAccountId) {
+            return res.status(400).json({
+                message: 'Payment failed: Recipient has not added a Stripe account.',
+                code: 'MISSING_STRIPE_ACCOUNT'
+            });
+        }
+
         const paymentIntent = await stripe.paymentIntents.create({
             amount: Math.round(amount * 100), // amount in smallest currency unit (e.g., paise)
             currency: currency,
             automatic_payment_methods: {
                 enabled: true,
             },
+            transfer_data: {
+                destination: payee.stripeAccountId,
+            },
             metadata: {
-                userId: req.user._id.toString()
+                payerId: req.user._id.toString(),
+                payeeId: payeeId.toString()
             }
         });
 
         res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
-        console.error('Stripe Intent Error:', error);
-        res.status(500).json({ message: error.message });
+        console.error('Stripe Intent Error Full:', error);
+
+        // Handle specific Stripe errors
+        if (error.code === 'account_invalid' || error.type === 'StripeInvalidRequestError') {
+            return res.status(400).json({
+                message: 'Invalid Stripe Account ID. Please verify the recipient\'s Stripe ID.',
+                code: 'INVALID_STRIPE_ACCOUNT'
+            });
+        }
+
+        res.status(500).json({ message: error.message, stack: process.env.NODE_ENV === 'development' ? error.stack : undefined });
     }
 };
 

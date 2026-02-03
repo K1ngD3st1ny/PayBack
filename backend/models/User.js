@@ -14,8 +14,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    upiId: {
-        type: String
+    stripeAccountId: {
+        type: String,
+        select: false // Secure: Only return when explicitly requested
     },
     avatar: {
         type: String, // Base64 string

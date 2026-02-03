@@ -13,7 +13,7 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-    const { name, email, password, upiId } = req.body;
+    const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
         return res.status(400).json({ message: 'Please add all fields' });
@@ -35,8 +35,7 @@ const registerUser = async (req, res) => {
         const user = await User.create({
             name,
             email,
-            password: hashedPassword,
-            upiId
+            password: hashedPassword
         });
 
         if (user) {
@@ -45,7 +44,7 @@ const registerUser = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 avatar: user.avatar,
-                upiId: user.upiId,
+                hasStripeAccount: false, // New users don't have it yet
                 token: generateToken(user._id),
             });
         } else {
@@ -66,12 +65,15 @@ const loginUser = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (user && (await bcrypt.compare(password, user.password))) {
+            // Check if user has Stripe ID
+            const userWithStripe = await User.findById(user._id).select('+stripeAccountId');
+
             res.json({
                 _id: user.id,
                 name: user.name,
                 email: user.email,
                 avatar: user.avatar,
-                upiId: user.upiId,
+                hasStripeAccount: !!userWithStripe.stripeAccountId,
                 token: generateToken(user._id),
             });
         } else {
