@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
+import Footer from '@/components/Footer';
 import api from '@/lib/api';
 import { Plus, Users, Zap } from 'lucide-react';
 
@@ -141,6 +142,7 @@ export default function Dashboard() {
                     )}
                 </div>
             </div>
-        </div>
+            <Footer />
+        </div >
     );
 }
