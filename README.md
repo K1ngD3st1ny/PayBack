@@ -104,5 +104,3 @@ PayBack/
 ```
 
 ---
-
-Made with 💜 by Deepu 
